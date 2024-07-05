@@ -97,7 +97,8 @@ app.get('/', (req, res) => {
   res.send('Server is running');
 });
 
-const port = 3001;
+// Use the PORT environment variable for Heroku or default to 3001
+const port = process.env.PORT || 3001;
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
