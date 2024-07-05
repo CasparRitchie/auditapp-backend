@@ -93,6 +93,20 @@ app.post('/submit-survey', async (req, res) => {
   }
 });
 
+app.get('/download-csv', (req, res) => {
+  const filePath = path.join(__dirname, 'audit_data.csv');
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, 'audit_data.csv', (err) => {
+      if (err) {
+        console.error('Error downloading CSV file', err);
+        res.status(500).send('Error downloading CSV file');
+      }
+    });
+  } else {
+    res.status(404).send('CSV file not found');
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
