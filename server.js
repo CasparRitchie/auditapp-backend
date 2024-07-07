@@ -8,7 +8,8 @@ const cors = require('cors');
 const { Storage } = require('@google-cloud/storage');
 
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' })); // Increase the limit for JSON payloads
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // Increase the limit for URL-encoded payloads
 
 const corsOptions = {
   origin: 'https://auditapp-26aa21253884.herokuapp.com', // Your frontend URL
@@ -26,7 +27,7 @@ fs.writeFileSync(keyFilePath, serviceAccountDecoded);
 
 // Configure Google Cloud Storage
 const storage = new Storage({
-  projectId: 'idr-audit', // Replace with your GCP project ID
+  projectId: 'your-gcp-project-id', // Replace with your GCP project ID
   keyFilename: keyFilePath // Path to the decoded key file
 });
 
