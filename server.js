@@ -8,14 +8,17 @@ const cors = require('cors');
 const { Storage } = require('@google-cloud/storage');
 
 const app = express();
-app.use(bodyParser.json({ limit: '50mb' })); // Increase the limit for JSON payloads
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // Increase the limit for URL-encoded payloads
 
+// CORS configuration
 const corsOptions = {
   origin: 'https://auditapp-26aa21253884.herokuapp.com', // Your frontend URL
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11) choke on 204
 };
 app.use(cors(corsOptions));  // Enable CORS for all routes
+
+// Body parser configuration with increased payload size limits
+app.use(bodyParser.json({ limit: '50mb' })); // Increase the limit for JSON payloads
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // Increase the limit for URL-encoded payloads
 
 // Decode base64 encoded service account key
 const serviceAccountBase64 = process.env.GCP_KEY_BASE64;
