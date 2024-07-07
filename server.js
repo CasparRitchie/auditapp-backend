@@ -139,8 +139,8 @@ app.post('/submit-survey', async (req, res) => {
     await csvWriter.writeRecords([surveyData]);
     res.status(200).send('Survey data saved successfully');
   } catch (error) {
-    console.error('Error writing to CSV file or uploading files to GCS', error);
-    res.status(500).send('Error saving survey data');
+    console.error('Error:', error); // Log the error details
+    res.status(500).json({ error: error.message, stack: error.stack }); // Return detailed error
   }
 });
 
