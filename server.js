@@ -5,10 +5,32 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvParser = require('csv-parser');
 const path = require('path');
 const cors = require('cors');
+const { Storage } = require('@google-cloud/storage');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors());  // Enable CORS for all routes
+
+const corsOptions = {
+  origin: 'https://auditapp-26aa21253884.herokuapp.com', // Your frontend URL
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));  // Enable CORS for all routes
+
+// Decode base64 encoded service account key
+const serviceAccountBase64 = process.env.GCP_KEY_BASE64;
+const serviceAccountDecoded = Buffer.from(serviceAccountBase64, 'base64').toString('utf8');
+
+// Write the decoded key to a file
+const keyFilePath = path.join(__dirname, 'service-account-key.json');
+fs.writeFileSync(keyFilePath, serviceAccountDecoded);
+
+// Configure Google Cloud Storage
+const storage = new Storage({
+  projectId: 'idr-audit', // Replace with your GCP project ID
+  keyFilename: keyFilePath // Path to the decoded key file
+});
+
+const bucketName = 'idr-audit-app'; // Your GCS bucket name
 
 const csvFilePath = path.join(__dirname, 'audit_data.csv');
 
@@ -65,6 +87,7 @@ const flattenObject = (obj, prefix = '') => {
 
 app.post('/submit-survey', async (req, res) => {
   const surveyData = flattenObject(req.body);
+  const files = req.body.files; // Assuming files are included in the request body
 
   try {
     let existingHeaders = await getExistingHeaders(csvFilePath);
@@ -77,6 +100,30 @@ app.post('/submit-survey', async (req, res) => {
       }
     });
 
+    // Upload files to GCS
+    const uploadedFileUrls = [];
+    for (let file of files) {
+      const { filename, content } = file; // Assuming file content is base64 encoded
+      const buffer = Buffer.from(content, 'base64');
+      const blob = storage.bucket(bucketName).file(filename);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        contentType: 'image/jpeg' // Adjust based on file type
+      });
+
+      await new Promise((resolve, reject) => {
+        blobStream.on('error', reject);
+        blobStream.on('finish', resolve);
+        blobStream.end(buffer);
+      });
+
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
+      uploadedFileUrls.push(publicUrl);
+    }
+
+    // Add file URLs to survey data
+    surveyData.fileUrls = uploadedFileUrls;
+
     // Create CSV writer with updated headers
     const csvWriter = createCsvWriter({
       path: csvFilePath,
@@ -88,7 +135,7 @@ app.post('/submit-survey', async (req, res) => {
     await csvWriter.writeRecords([surveyData]);
     res.status(200).send('Survey data saved successfully');
   } catch (error) {
-    console.error('Error writing to CSV file', error);
+    console.error('Error writing to CSV file or uploading files to GCS', error);
     res.status(500).send('Error saving survey data');
   }
 });
