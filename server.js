@@ -116,7 +116,10 @@ app.post('/submit-survey', async (req, res) => {
       });
 
       await new Promise((resolve, reject) => {
-        blobStream.on('error', reject);
+        blobStream.on('error', (err) => {
+          console.error(`Error uploading file ${filename}:`, err);
+          reject(err);
+        });
         blobStream.on('finish', resolve);
         blobStream.end(buffer);
       });
@@ -139,7 +142,7 @@ app.post('/submit-survey', async (req, res) => {
     await csvWriter.writeRecords([surveyData]);
     res.status(200).send('Survey data saved successfully');
   } catch (error) {
-    console.error('Error:', error); // Log the error details
+    console.error('Error processing survey data:', error); // Log the error details
     res.status(500).json({ error: error.message, stack: error.stack }); // Return detailed error
   }
 });
