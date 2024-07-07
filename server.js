@@ -94,6 +94,11 @@ app.post('/submit-survey', async (req, res) => {
   const files = req.body.files; // Assuming files are included in the request body
 
   try {
+    // Validate files array
+    if (!Array.isArray(files)) {
+      throw new Error('Files should be an array');
+    }
+
     let existingHeaders = await getExistingHeaders(csvFilePath);
     let newHeaders = Object.keys(surveyData);
 
